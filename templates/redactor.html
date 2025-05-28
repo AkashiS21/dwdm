@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>DWDM Visualizer - Редактор топологии</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daisyui"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#0ea5e9',
+                            dark: '#0284c7',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 transition-colors duration-300 p-6 min-h-screen">
+
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">
+            <i class="fas fa-project-diagram text-primary"></i> Редактор топологии DWDM
+        </h1>
+
+        <!-- Тумблер темы -->
+        <label class="flex items-center gap-2 cursor-pointer">
+            <span class="text-sm">Тема</span>
+            <input type="checkbox" id="themeToggle" class="toggle toggle-primary">
+        </label>
+    </header>
+
+    <!-- Graph -->
+    <div id="graph"
+         class="h-[70vh] rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"></div>
+
+    <!-- Save button -->
+    <div class="flex justify-end">
+        <button id="saveBtn" class="btn btn-primary">
+            <i class="fas fa-save mr-2"></i> Сохранить топологию
+        </button>
+    </div>
+
+    <!-- JSON Output -->
+    <section>
+        <h2 class="text-xl font-semibold mb-2">Текущий JSON</h2>
+        <pre id="jsonOutput"
+             class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-4 rounded-lg text-sm max-h-64 overflow-y-auto whitespace-pre-wrap border border-gray-300 dark:border-gray-700">
+      </pre>
+    </section>
+</div>
+
+<script>
+    const initialTopology = {{ init_data|safe }};
+    const nodes = new vis.DataSet(initialTopology.nodes);
+    const edges = new vis.DataSet(initialTopology.links.map(link => ({
+        from: link[0],
+        to: link[1],
+        arrows: 'to',
+        smooth: {type: 'continuous'}
+    })));
+
+    const container = document.getElementById('graph');
+    const data = {nodes, edges};
+    const options = {
+        physics: false,
+        nodes: {shape: 'dot', size: 20},
+        layout: {improvedLayout: true},
+        interaction: {dragNodes: true}
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    network.on('dragEnd', function (params) {
+        params.nodes.forEach(nodeId => {
+            const node = nodes.get(nodeId);
+            const updatedNode = {...node, x: params.pointer.canvas.x, y: params.pointer.canvas.y};
+            nodes.update(updatedNode);
+        });
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', function () {
+        const updatedTopology = {
+            nodes: nodes.get(),
+            links: edges.get().map(edge => [edge.from, edge.to])
+        };
+
+        document.getElementById('jsonOutput').textContent = JSON.stringify(updatedTopology, null, 2);
+
+        fetch('/save_topology/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(updatedTopology)
+        });
+    });
+
+    document.getElementById('jsonOutput').textContent = JSON.stringify(initialTopology, null, 2);
+
+    // === Theme toggle logic ===
+    const toggle = document.getElementById('themeToggle');
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        toggle.checked = true;
+    }
+
+    toggle.addEventListener('change', () => {
+        if (toggle.checked) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    });
+
+
+</script>
+
+<!-- Font Awesome for icons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+</body>
+</html>

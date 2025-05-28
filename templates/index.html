@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DWDM Visualizer</title>
+    <script src="https://unpkg.com/vis-network@latest/dist/vis-network.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            },
+            plugins: [
+                function ({addVariant}) {
+                    addVariant('dark', '.dark &')
+                }
+            ]
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+<div class="container mx-auto p-4">
+    <!-- Header -->
+    <header class="mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-network-wired text-primary-600 dark:text-primary-400 text-2xl"></i>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">DWDM Visualizer</h1>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-sun text-yellow-500 dark:text-yellow-300"></i>
+                    <div class="relative inline-block w-12 align-middle select-none">
+                        <input type="checkbox" id="themeSwitcher" class="sr-only peer"/>
+                        <div class="w-12 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                    </div>
+                    <i class="fas fa-moon text-indigo-700 dark:text-indigo-300"></i>
+                </div>
+
+                <div class="relative inline-block text-left">
+                    <div>
+                        <button type="button" id="settingsBtn"
+                                class="inline-flex justify-center w-full rounded-md border border-gray-300 dark:border-gray-700 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <i class="fas fa-cog text-gray-600 dark:text-gray-300 mr-2"></i>
+                            Настройки
+                            <i class="fas fa-chevron-down ml-2 -mr-1"></i>
+                        </button>
+                    </div>
+                    <div id="settingsDropdown"
+                         class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="py-1" role="menu" aria-orientation="vertical">
+                            <button id="exportBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-download mr-2"></i>Экспорт данных
+                            </button>
+                            <button id="clearBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-trash-alt mr-2"></i>Очистить граф
+                            </button>
+                            <div class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="showDistanceAsLength"
+                                           class="form-checkbox h-4 w-4 text-primary-600 dark:text-primary-400">
+                                    <span>Длина линии = расстояние</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Upload Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+        <form id="uploadForm" class="flex flex-wrap gap-4 items-center">
+            {% csrf_token %}
+            <div class="flex-1 min-w-[200px]">
+                <div class="relative">
+                    <input type="file" name="file" id="fileInput"
+                           class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-800"/>
+                    <div id="fileNameDisplay" class="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">Файл не
+                        выбран
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <i class="fas fa-upload mr-2"></i>Загрузить CSV
+                </button>
+                <button id="mockBtn" type="button"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-random mr-2"></i>Сгенерировать мок
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Graph Panel -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white">
+                    <i class="fas fa-project-diagram mr-2 text-primary-500"></i>Граф сети
+                </h2>
+                <div class="flex gap-2">
+                    <button id="zoomInBtn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-search-plus text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                    <button id="zoomOutBtn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-search-minus text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                    <button id="resetViewBtn" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-compress-arrows-alt text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="graph" class="h-[60vh] w-full"></div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+                    <i class="fas fa-sliders-h mr-2 text-primary-500"></i>Настройки расположения
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Сила отталкивания
+                        </label>
+                        <input type="range" id="gravitySlider" min="-20000" max="-1000" step="500" value="-8000"
+                               class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>Слабее</span>
+                            <span>Сильнее</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Длина связей
+                        </label>
+                        <input type="range" id="springLengthSlider" min="50" max="500" step="10" value="250"
+                               class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>Короче</span>
+                            <span>Длиннее</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <button id="shakeBtn"
+                            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white rounded-md flex items-center">
+                        <i class="fas fa-random mr-2"></i>Перераспределить узлы
+                    </button>
+
+                    <button id="togglePhysicsBtn"
+                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-600 text-white rounded-md flex items-center">
+                        <i class="fas fa-atom mr-2"></i><span id="physicsStatus">Выключить физику</span>
+                    </button>
+                    <button id="stabilizeBtn"
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white rounded-md flex items-center">
+                        <i class="fas fa-compress-arrows-alt mr-2"></i>Стабилизировать
+                    </button>
+                    <button id="clusterBtn"
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 text-white rounded-md flex items-center">
+                        <i class="fas fa-object-group mr-2"></i>Кластеризовать
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-table mr-2 text-primary-500"></i>Данные загрузки
+                    </h2>
+                    <label class="flex items-center cursor-pointer gap-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-300">Автообновление</span>
+                        <div class="relative inline-block w-10 align-middle select-none">
+                            <input type="checkbox" id="autorefresh" class="sr-only peer"/>
+                            <div class="w-10 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                        </div>
+                    </label>
+                </div>
+                <div class="mt-3">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input id="tableSearch" type="text"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Поиск...">
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto max-h-[55vh] overflow-y-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="sticky top-0 bg-gray-100 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                            data-sort="from">
+                            От <i class="fas fa-sort text-gray-400 ml-1"></i>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                            data-sort="to">
+                            До <i class="fas fa-sort text-gray-400 ml-1"></i>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                            data-sort="load">
+                            Загрузка <i class="fas fa-sort text-gray-400 ml-1"></i>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                            data-sort="distance">
+                            Расстояние <i class="fas fa-sort text-gray-400 ml-1"></i>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody id="linkTable"
+                           class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                </table>
+            </div>
+            <div class="p-4 flex justify-between items-center border-t border-gray-200 dark:border-gray-700">
+                <div id="statsDisplay" class="text-sm text-gray-600 dark:text-gray-300">
+                    Всего соединений: <span id="totalLinks">0</span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="prevPage"
+                            class="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-gray-700 text-sm leading-5 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="pageDisplay"
+                          class="flex items-center text-sm text-gray-700 dark:text-gray-200">1 / 1</span>
+                    <button id="nextPage"
+                            class="inline-flex items-center px-2 py-1 border border-gray-300 dark:border-gray-700 text-sm leading-5 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 flex justify-between items-center text-sm">
+        <div class="text-gray-600 dark:text-gray-300" id="statusMessage">Готов к работе</div>
+        <div class="text-gray-500 dark:text-gray-400">
+            Последнее обновление: <span id="lastUpdate">-</span>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="infoModal"
+     class="hidden fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-white">Информация о соединении</h3>
+        </div>
+        <div id="modalContent" class="p-4 text-gray-700 dark:text-gray-300"></div>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <button id="closeModal"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                Закрыть
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variables
+    const uploadForm = document.getElementById("uploadForm");
+    const fileInput = document.getElementById("fileInput");
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
+    const mockBtn = document.getElementById("mockBtn");
+    const linkTable = document.getElementById("linkTable");
+    const autorefresh = document.getElementById("autorefresh");
+    const themeSwitcher = document.getElementById("themeSwitcher");
+    const tableSearch = document.getElementById("tableSearch");
+    const statusMessage = document.getElementById("statusMessage");
+    const lastUpdate = document.getElementById("lastUpdate");
+    const totalLinks = document.getElementById("totalLinks");
+    const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const resetViewBtn = document.getElementById("resetViewBtn");
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsDropdown = document.getElementById("settingsDropdown");
+    const infoModal = document.getElementById("infoModal");
+    const closeModal = document.getElementById("closeModal");
+
+    let autoInterval = null;
+    let network = null;
+    let graphData = {nodes: [], edges: []};
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let sortColumn = "from";
+    let sortDirection = "asc";
+
+    // Settings Dropdown
+    settingsBtn.addEventListener("click", () => {
+        settingsDropdown.classList.toggle("hidden");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
+            settingsDropdown.classList.add("hidden");
+        }
+    });
+
+    // Theme Switcher
+    themeSwitcher.addEventListener("change", () => {
+        if (themeSwitcher.checked) {
+            document.documentElement.setAttribute("data-theme", "dark");
+            document.body.classList.add("dark");
+        } else {
+            document.documentElement.setAttribute("data-theme", "light");
+            document.body.classList.remove("dark");
+        }
+
+        // If network exists, redraw it with new theme
+        if (network) {
+            updateGraphColors();
+        }
+    });
+
+    // File Input Display
+    fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+            fileNameDisplay.textContent = fileInput.files[0].name;
+        } else {
+            fileNameDisplay.textContent = "Файл не выбран";
+        }
+    });
+
+    // Modal functions
+    closeModal.addEventListener("click", () => {
+        infoModal.classList.add("hidden");
+    });
+
+    window.addEventListener("click", (e) => {
+        if (e.target === infoModal) {
+            infoModal.classList.add("hidden");
+        }
+    });
+
+    const showDistanceAsLength = document.getElementById("showDistanceAsLength");
+    showDistanceAsLength.addEventListener("change", () => {
+        if (network) {
+            redrawGraph();
+        }
+    });
+
+    // Upload Form
+    uploadForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!fileInput.files[0]) {
+            showStatus("Ошибка: Файл не выбран", "error");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        showStatus("Загрузка файла...", "loading");
+
+        fetch("/upload_csv/", {
+            method: "POST",
+            body: formData,
+            headers: {"X-CSRFToken": "{{ csrf_token }}"}
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus("Ошибка: " + data.error, "error");
+                } else {
+                    updateGraphAndTable(data);
+                    showStatus("Файл успешно загружен", "success");
+                }
+            })
+            .catch(err => {
+                showStatus("Ошибка при загрузке файла: " + err, "error");
+            });
+    });
+
+    // Mock Data Button
+    mockBtn.addEventListener("click", () => {
+        showStatus("Генерация тестовых данных...", "loading");
+
+        fetch("/generate_mock_data/")
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showStatus("Ошибка: " + data.error, "error");
+                } else {
+                    updateGraphAndTable(data);
+                    showStatus("Тестовые данные сгенерированы", "success");
+                }
+            })
+            .catch(err => {
+                showStatus("Ошибка при генерации данных: " + err, "error");
+            });
+    });
+
+    // Auto Refresh
+    autorefresh.addEventListener("change", () => {
+        if (autorefresh.checked) {
+            showStatus("Автообновление включено", "info");
+            autoInterval = setInterval(() => {
+                fetch("/generate_mock_data/")
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.error) {
+                            updateGraphAndTable(data);
+                            showStatus("Данные обновлены автоматически", "info", 2000);
+                        }
+                    })
+                    .catch(err => {
+                        showStatus("Ошибка автообновления: " + err, "error");
+                        autorefresh.checked = false;
+                        clearInterval(autoInterval);
+                    });
+            }, 5000);
+        } else {
+            clearInterval(autoInterval);
+            showStatus("Автообновление выключено", "info");
+        }
+    });
+
+    // Table Search
+    tableSearch.addEventListener("input", () => {
+        renderTable();
+    });
+
+    // Sort Columns
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            const column = th.getAttribute('data-sort');
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+
+            // Reset sort icons
+            document.querySelectorAll('th[data-sort] i').forEach(icon => {
+                icon.className = 'fas fa-sort text-gray-400 ml-1';
+            });
+
+            // Set appropriate icon
+            const icon = th.querySelector('i');
+            if (sortDirection === 'asc') {
+                icon.className = 'fas fa-sort-up text-primary-500 ml-1';
+            } else {
+                icon.className = 'fas fa-sort-down text-primary-500 ml-1';
+            }
+
+            renderTable();
+        });
+    });
+
+    // Clear Graph
+    clearBtn.addEventListener("click", () => {
+        graphData = {nodes: [], edges: []};
+        drawGraph([], []);
+        updateTable([]);
+        showStatus("Граф очищен", "info");
+        settingsDropdown.classList.add("hidden");
+    });
+
+    // Export Data
+    exportBtn.addEventListener("click", () => {
+        if (graphData.edges.length === 0) {
+            showStatus("Нет данных для экспорта", "error");
+            return;
+        }
+
+        const csvContent = "data:text/csv;charset=utf-8," +
+            "From,To,Load\n" +
+            graphData.edges.map(e => `${e.from},${e.to},${e.label}`).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "dwdm_data_" + new Date().toISOString().slice(0, 10) + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showStatus("Данные экспортированы", "success");
+        settingsDropdown.classList.add("hidden");
+    });
+
+    // Graph Controls
+    zoomInBtn.addEventListener("click", () => {
+        if (network) network.moveTo({scale: network.getScale() * 1.2});
+    });
+
+    zoomOutBtn.addEventListener("click", () => {
+        if (network) network.moveTo({scale: network.getScale() * 0.8});
+    });
+
+    resetViewBtn.addEventListener("click", () => {
+        if (network) network.fit();
+    });
+
+    // Main Functions
+    function updateGraphAndTable(data) {
+        if (data.error) return alert(data.error);
+        graphData = {
+            nodes: data.nodes,
+            edges: data.edges
+        };
+        drawGraph(data.nodes, data.edges);
+        updateTable(data.edges);
+        updateLastUpdate();
+    }
+
+    function drawGraph(nodes, edges, physicsSettings = null) {
+        const container = document.getElementById("graph");
+
+        // Применяем настройки физики, если они были переданы
+        let customPhysics = {};
+        if (physicsSettings) {
+            customPhysics = {
+                enabled: physicsSettings.enabled,
+                barnesHut: {
+                    gravitationalConstant: physicsSettings.gravitationalConstant,
+                    springLength: physicsSettings.springLength
+                }
+            };
+        }
+
+        // Подготовка данных с учетом настроек
+        const edgesWithScaledLength = edges.map(edge => {
+            let edgeOptions = {
+                ...edge,
+                color: getEdgeColor(edge),
+                font: {color: isDarkMode() ? '#fff' : '#333'}
+            };
+
+            // Если включена опция расстояния и есть данные о расстоянии
+            if (showDistanceAsLength.checked && edge.distance) {
+                // Преобразуем расстояние в масштаб для длины линии
+                // Значение length влияет на физическую длину пружины в симуляции
+                edgeOptions.length = Math.max(50, Math.min(500, edge.distance));
+            }
+
+            return edgeOptions;
+        });
+
+        const data = {
+            nodes: new vis.DataSet(nodes.map(node => ({
+                ...node,
+                color: getNodeColor(node),
+                font: {color: isDarkMode() ? '#fff' : '#333'}
+            }))),
+            edges: new vis.DataSet(edgesWithScaledLength)
+        };
+
+        const options = {
+            physics: {
+                enabled: true, // Всегда включаем физику для лучшего распределения
+                stabilization: {
+                    iterations: 200,  // Увеличиваем количество итераций стабилизации
+                    fit: true
+                },
+                barnesHut: {
+                    gravitationalConstant: -8000,  // Более сильное отталкивание (-2000 было исходно)
+                    centralGravity: 0.1,          // Уменьшаем центральную гравитацию (по умолчанию 0.3)
+                    springLength: 250,            // Увеличиваем длину пружины (было 150)
+                    springConstant: 0.02,         // Уменьшаем жесткость пружины (было 0.04)
+                    damping: 0.09                 // Добавляем демпфирование для более плавного движения
+                },
+                repulsion: {
+                    nodeDistance: 300            // Минимальное расстояние между узлами
+                }
+            },
+            edges: {
+                arrows: {
+                    to: {enabled: true, scaleFactor: 0.5}
+                },
+                smooth: {
+                    type: 'curvedCW',
+                    roundness: 0.2
+                },
+                font: {
+                    color: isDarkMode() ? '#fff' : '#333',
+                    strokeWidth: 0,
+                    strokeColor: 'rgba(0,0,0,0)'
+                },
+                width: 2
+            },
+            nodes: {
+                shape: "dot",
+                size: 16,
+                borderWidth: 2,
+                shadow: true
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 300,
+                dragNodes: true,     // Позволяет перетаскивать узлы
+                dragView: true,      // Позволяет перетаскивать весь вид
+                zoomView: true       // Позволяет масштабировать
+            },
+            layout: {
+                improvedLayout: true,
+                randomSeed: 42       // Фиксированный seed для повторяемости
+            }
+        };
+
+        network = new vis.Network(container, data, options);
+
+        // Event listeners
+        network.on("click", function (params) {
+            if (params.edges.length > 0) {
+                const edgeId = params.edges[0];
+                const edge = data.edges.get(edgeId);
+                showEdgeModal(edge);
+            }
+        });
+
+        // Stabilize and fit
+        network.once("stabilizationIterationsDone", function () {
+            network.fit();
+        });
+        if (physicsSettings) {
+            if (gravitySlider) gravitySlider.value = physicsSettings.gravitationalConstant;
+            if (springLengthSlider) springLengthSlider.value = physicsSettings.springLength;
+            if (physicsStatus) {
+                physicsStatus.textContent = physicsSettings.enabled ? 'Выключить физику' : 'Включить физику';
+            }
+        }
+    }
+
+    function updateTable(edges) {
+        totalLinks.textContent = edges.length;
+        currentPage = 1;
+        renderTable();
+    }
+
+    function redrawGraph() {
+        if (graphData.nodes && graphData.edges) {
+            // Сохраняем текущие настройки, если сеть существует
+            let currentPhysicsSettings = {};
+            if (network) {
+                currentPhysicsSettings = {
+                    enabled: network.physics.options.enabled,
+                    gravitationalConstant: network.physics.options.barnesHut.gravitationalConstant,
+                    springLength: network.physics.options.barnesHut.springLength
+                };
+            } else {
+                // Значения по умолчанию
+                currentPhysicsSettings = {
+                    enabled: true,
+                    gravitationalConstant: -8000,
+                    springLength: 250
+                };
+            }
+
+            // Применяем сохраненные настройки физики перед перерисовкой
+            physicsEnabled = currentPhysicsSettings.enabled;
+            drawGraph(graphData.nodes, graphData.edges, currentPhysicsSettings);
+        }
+    }
+
+    function renderTable() {
+        const searchTerm = tableSearch.value.toLowerCase();
+
+        // Filter
+        let filteredEdges = graphData.edges.filter(edge => {
+            return edge.from.toString().toLowerCase().includes(searchTerm) ||
+                edge.to.toString().toLowerCase().includes(searchTerm) ||
+                edge.label.toString().toLowerCase().includes(searchTerm);
+        });
+
+        // Sort
+        filteredEdges.sort((a, b) => {
+            let valA, valB;
+
+            if (sortColumn === 'from') {
+                valA = a.from;
+                valB = b.from;
+            } else if (sortColumn === 'to') {
+                valA = a.to;
+                valB = b.to;
+            } else if (sortColumn === 'load') {
+                valA = parseFloat(a.label);
+                valB = parseFloat(b.label);
+            } else if (sortColumn === 'distance') {
+                valA = a.distance || 0;
+                valB = b.distance || 0;
+            }
+
+            if (sortDirection === 'asc') {
+                return valA > valB ? 1 : -1;
+            } else {
+                return valA < valB ? 1 : -1;
+            }
+        });
+
+        // Pagination
+        const totalPages = Math.ceil(filteredEdges.length / rowsPerPage);
+        if (currentPage > totalPages) currentPage = 1;
+
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, filteredEdges.length);
+        const paginatedEdges = filteredEdges.slice(start, end);
+
+        // Update pagination controls
+        document.getElementById('pageDisplay').textContent = `${currentPage} / ${totalPages || 1}`;
+        document.getElementById('prevPage').disabled = currentPage <= 1;
+        document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+        // Setup pagination event listeners
+        document.getElementById('prevPage').onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        };
+
+        document.getElementById('nextPage').onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        };
+
+        // Render table
+        linkTable.innerHTML = "";
+        if (paginatedEdges.length === 0) {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td colspan="3" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Нет данных для отображения</td>`;
+            linkTable.appendChild(row);
+            return;
+        }
+
+        paginatedEdges.forEach(edge => {
+            const row = document.createElement("tr");
+            row.className = "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer";
+
+            const loadValue = parseFloat(edge.label);
+            let loadClass = "";
+
+            if (loadValue > 80) {
+                loadClass = "text-red-600 dark:text-red-400 font-bold";
+            } else if (loadValue > 60) {
+                loadClass = "text-yellow-600 dark:text-yellow-400 font-bold";
+            } else {
+                loadClass = "text-green-600 dark:text-green-400";
+            }
+
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${edge.from}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${edge.to}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm ${loadClass}">${edge.label}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${edge.distance ? edge.distance + ' км' : 'Н/Д'}</td>
+            `;
+
+            row.addEventListener("click", () => {
+                showEdgeModal(edge);
+            });
+
+            linkTable.appendChild(row);
+        });
+    }
+
+    function updateLastUpdate() {
+        const now = new Date();
+        lastUpdate.textContent = now.toLocaleTimeString();
+    }
+
+    function showStatus(message, type = "info", duration = 3000) {
+        statusMessage.textContent = message;
+
+        // Reset classes
+        statusMessage.classList.remove("text-green-600", "text-red-600", "text-blue-600", "text-yellow-600");
+        statusMessage.classList.remove("dark:text-green-400", "dark:text-red-400", "dark:text-blue-400", "dark:text-yellow-400");
+
+        // Apply appropriate color based on type
+        switch (type) {
+            case "success":
+                statusMessage.classList.add("text-green-600", "dark:text-green-400");
+                break;
+            case "error":
+                statusMessage.classList.add("text-red-600", "dark:text-red-400");
+                break;
+            case "warning":
+                statusMessage.classList.add("text-yellow-600", "dark:text-yellow-400");
+                break;
+            case "loading":
+                statusMessage.classList.add("text-blue-600", "dark:text-blue-400");
+                break;
+            default:
+                // Info - default style
+                statusMessage.classList.add("text-gray-600", "dark:text-gray-300");
+        }
+
+        // Auto clear after duration if not loading
+        if (type !== "loading" && duration > 0) {
+            setTimeout(() => {
+                statusMessage.textContent = "Готов к работе";
+                statusMessage.classList.remove("text-green-600", "text-red-600", "text-blue-600", "text-yellow-600");
+                statusMessage.classList.remove("dark:text-green-400", "dark:text-red-400", "dark:text-blue-400", "dark:text-yellow-400");
+                statusMessage.classList.add("text-gray-600", "dark:text-gray-300");
+            }, duration);
+        }
+    }
+
+    function showEdgeModal(edge) {
+        const loadValue = edge.usage_ratio ? (edge.usage_ratio * 100).toFixed(1) :
+            (edge.label.includes('/') ?
+                (parseInt(edge.label.split('/')[0]) / parseInt(edge.label.split('/')[1]) * 100).toFixed(1) :
+                parseFloat(edge.label));
+
+        let loadStatus = "";
+
+        if (loadValue > 80) {
+            loadStatus = `<span class="text-red-600 dark:text-red-400 font-bold">Критическая загрузка</span>`;
+        } else if (loadValue > 60) {
+            loadStatus = `<span class="text-yellow-600 dark:text-yellow-400 font-bold">Высокая загрузка</span>`;
+        } else {
+            loadStatus = `<span class="text-green-600 dark:text-green-400">Нормальная загрузка</span>`;
+        }
+
+        // Извлекаем информацию о загрузке из label, если формат "использовано/всего"
+        let used = '', total = '';
+        if (edge.label && edge.label.includes('/')) {
+            [used, total] = edge.label.split('/');
+        }
+
+        document.getElementById("modalContent").innerHTML = `
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">От узла</p>
+                    <p class="font-semibold">${edge.from}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">К узлу</p>
+                    <p class="font-semibold">${edge.to}</p>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Загрузка канала</p>
+                <div class="flex items-center space-x-2">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                        <div class="h-2.5 rounded-full ${getProgressBarColor(loadValue)}" style="width: ${loadValue}%"></div>
+                    </div>
+                    <span class="font-bold">${loadValue}%</span>
+                </div>
+                <p class="mt-1">${loadStatus}</p>
+                ${used && total ? `<p class="mt-1">Используется ${used} из ${total} частот</p>` : ''}
+            </div>
+
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Расстояние</p>
+                <p class="font-medium">${edge.distance ? `${edge.distance} км` : 'Нет данных'}</p>
+            </div>
+
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Рекомендации</p>
+                <p>${getRecommendation(loadValue)}</p>
+            </div>
+        </div>
+    `;
+
+        infoModal.classList.remove("hidden");
+    }
+
+    function getProgressBarColor(value) {
+        if (value > 80) return "bg-red-600 dark:bg-red-500";
+        if (value > 60) return "bg-yellow-500 dark:bg-yellow-400";
+        return "bg-green-500 dark:bg-green-400";
+    }
+
+    function getRecommendation(value) {
+        if (value > 80) {
+            return "Необходимо срочное перераспределение нагрузки или увеличение пропускной способности канала.";
+        } else if (value > 60) {
+            return "Рекомендуется мониторинг канала и подготовка к возможному перераспределению нагрузки.";
+        } else {
+            return "Канал функционирует в нормальном режиме, особых действий не требуется.";
+        }
+    }
+
+    function getNodeColor(node) {
+        // Calculate color based on total connections or other node properties
+        return {
+            background: isDarkMode() ? "#374151" : "#e5e7eb",
+            border: isDarkMode() ? "#4b5563" : "#d1d5db",
+            highlight: {
+                background: isDarkMode() ? "#4b5563" : "#d1d5db",
+                border: isDarkMode() ? "#6b7280" : "#9ca3af"
+            },
+            hover: {
+                background: isDarkMode() ? "#4b5563" : "#d1d5db",
+                border: isDarkMode() ? "#6b7280" : "#9ca3af"
+            }
+        };
+    }
+
+    function getEdgeColor(edge) {
+        const load = parseFloat(edge.label);
+
+        if (load > 80) {
+            return isDarkMode() ? "#ef4444" : "#dc2626"; // Red
+        } else if (load > 60) {
+            return isDarkMode() ? "#f59e0b" : "#d97706"; // Yellow/Orange
+        } else {
+            return isDarkMode() ? "#10b981" : "#059669"; // Green
+        }
+    }
+
+    function isDarkMode() {
+        return document.body.classList.contains("dark");
+    }
+
+    function updateGraphColors() {
+        if (!network) return;
+
+        const nodes = network.body.data.nodes;
+        const edges = network.body.data.edges;
+
+        nodes.update(nodes.get().map(node => ({
+            id: node.id,
+            color: getNodeColor(node),
+            font: {color: isDarkMode() ? '#fff' : '#333'}
+        })));
+
+        edges.update(edges.get().map(edge => ({
+            id: edge.id,
+            color: getEdgeColor(edge),
+            font: {color: isDarkMode() ? '#fff' : '#333'}
+        })));
+    }
+
+    // Check system preference for dark mode
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        themeSwitcher.checked = true;
+        document.body.classList.add("dark");
+    }
+
+    // Initialize with mock data
+    mockBtn.click()
+
+    // Получаем элементы управления
+    const gravitySlider = document.getElementById('gravitySlider');
+    const springLengthSlider = document.getElementById('springLengthSlider');
+    const shakeBtn = document.getElementById('shakeBtn');
+    const togglePhysicsBtn = document.getElementById('togglePhysicsBtn');
+    const stabilizeBtn = document.getElementById('stabilizeBtn');
+    const physicsStatus = document.getElementById('physicsStatus');
+
+    // Флаг состояния физики
+    let physicsEnabled = true;
+
+    // Обработчики для ползунков
+    gravitySlider.addEventListener('change', function () {
+        if (network) {
+            const gravity = parseInt(this.value);
+            network.physics.options.barnesHut.gravitationalConstant = gravity;
+            network.physics.options.repulsion.nodeDistance = Math.abs(gravity) / 30; // Корректировка дистанции
+            network.physics.stabilize(50); // Небольшая стабилизация после изменения
+        }
+    });
+
+    springLengthSlider.addEventListener('change', function () {
+        if (network) {
+            const springLength = parseInt(this.value);
+            network.physics.options.barnesHut.springLength = springLength;
+            network.physics.stabilize(50);
+        }
+    });
+
+    // Перераспределение узлов (встряска)
+    shakeBtn.addEventListener('click', function () {
+        if (network) {
+            // Временно вносим случайность в позиции
+            const nodes = network.body.data.nodes;
+            const positions = network.getPositions();
+
+            Object.keys(positions).forEach(nodeId => {
+                const randomX = (Math.random() - 0.5) * 200;
+                const randomY = (Math.random() - 0.5) * 200;
+                network.moveNode(nodeId, positions[nodeId].x + randomX, positions[nodeId].y + randomY);
+            });
+
+            // Включаем физику, если она была выключена
+            if (!physicsEnabled) {
+                network.physics.options.enabled = true;
+                physicsEnabled = true;
+                physicsStatus.textContent = 'Выключить физику';
+            }
+
+            // Запускаем стабилизацию
+            network.stabilize(100);
+            showStatus("Перераспределение узлов...", "info", 2000);
+        }
+    });
+
+    // Включение/выключение физики
+    togglePhysicsBtn.addEventListener('click', function () {
+        if (network) {
+            physicsEnabled = !physicsEnabled;
+            network.physics.options.enabled = physicsEnabled;
+
+            if (physicsEnabled) {
+                physicsStatus.textContent = 'Выключить физику';
+                network.stabilize(50);
+                showStatus("Физика включена", "info", 1000);
+            } else {
+                physicsStatus.textContent = 'Включить физику';
+                showStatus("Физика выключена", "info", 1000);
+            }
+        }
+    });
+
+    // Стабилизация сети
+    stabilizeBtn.addEventListener('click', function () {
+        if (network) {
+            showStatus("Стабилизация...", "loading");
+
+            // Включаем физику временно, если она была выключена
+            const wasDisabled = !network.physics.options.enabled;
+            if (wasDisabled) {
+                network.physics.options.enabled = true;
+            }
+
+            // Запускаем полную стабилизацию
+            setTimeout(() => {
+                network.stabilize(500);
+
+                // Возвращаем предыдущее состояние физики
+                if (wasDisabled) {
+                    setTimeout(() => {
+                        network.physics.options.enabled = false;
+                        showStatus("Стабилизация завершена", "success", 2000);
+                    }, 1000);
+                } else {
+                    showStatus("Стабилизация завершена", "success", 2000);
+                }
+            }, 100);
+        }
+    });
+
+    // Добавьте этот код перед обработчиком кнопки shakeBtn в конце вашего скрипта
+
+    // Глобальные переменные для кластеризации
+    let isClustered = false;
+    let clusterIDs = []; // Храним ID созданных кластеров
+
+    // Функция кластеризации
+    function clusterByConnections() {
+        if (!network || !graphData.nodes || !graphData.edges) {
+            showStatus("Нет данных графа для кластеризации", "error", 2000);
+            return;
+        }
+
+        if (isClustered) {
+            // Если уже кластеризованы, восстанавливаем исходную сеть
+            try {
+                // Открываем каждый кластер по его ID
+                clusterIDs.forEach(clusterId => {
+                    try {
+                        network.openCluster(clusterId);
+                    } catch (e) {
+                        console.error(`Ошибка при открытии кластера ${clusterId}:`, e);
+                    }
+                });
+                clusterIDs = []; // Очищаем список после раскластеризации
+                isClustered = false;
+                document.getElementById('clusterBtn').innerHTML = '<i class="fas fa-object-group mr-2"></i>Кластеризовать';
+                showStatus("Кластеризация отключена", "info", 2000);
+            } catch (e) {
+                console.error("Ошибка при раскластеризации:", e);
+                showStatus("Ошибка при раскластеризации", "error", 2000);
+            }
+            return;
+        }
+
+        try {
+            showStatus("Кластеризация...", "loading");
+
+            // Определяем узлы с большим количеством соединений
+            const connections = {};
+            graphData.edges.forEach(edge => {
+                if (!connections[edge.from]) connections[edge.from] = 0;
+                if (!connections[edge.to]) connections[edge.to] = 0;
+                connections[edge.from]++;
+                connections[edge.to]++;
+            });
+
+            // Анализируем связанные компоненты графа
+            const visited = {};
+            const components = [];
+
+            function dfs(node, component) {
+                visited[node] = true;
+                component.push(node);
+
+                // Находим все соседние узлы
+                graphData.edges.forEach(edge => {
+                    if (edge.from === node && !visited[edge.to]) {
+                        dfs(edge.to, component);
+                    } else if (edge.to === node && !visited[edge.from]) {
+                        dfs(edge.from, component);
+                    }
+                });
+            }
+
+            // Находим все компоненты связности
+            graphData.nodes.forEach(node => {
+                if (!visited[node.id]) {
+                    const component = [];
+                    dfs(node.id, component);
+                    if (component.length > 2) { // Кластеризуем только компоненты с более чем 2 узлами
+                        components.push(component);
+                    }
+                }
+            });
+
+            console.log("Найдены компоненты связности:", components);
+
+            // Счетчик успешно созданных кластеров
+            let clusterCount = 0;
+
+            // Создаем кластеры для каждой компоненты
+            components.forEach((component, index) => {
+                if (component.length <= 2) return; // Слишком маленькие компоненты не кластеризуем
+
+                // Выбираем центральный узел в компоненте (с наибольшим количеством связей)
+                let centralNode = component.reduce((max, nodeId) => {
+                    return (connections[nodeId] || 0) > (connections[max] || 0) ? nodeId : max;
+                }, component[0]);
+
+                try {
+                    console.log(`Создание кластера ${index + 1} вокруг узла ${centralNode}`);
+
+                    // ID для нового кластера
+                    const clusterId = `cluster_${index}`;
+
+                    // Создаем массив ID узлов для кластеризации (исключая центральный узел)
+                    const nodesToCluster = component.filter(nodeId => nodeId !== centralNode);
+
+                    if (nodesToCluster.length > 0) {
+                        // Используем метод cluster с опциями
+                        network.cluster({
+                            joinCondition: function (nodeOptions) {
+                                return nodesToCluster.includes(nodeOptions.id);
+                            },
+                            processProperties: function (clusterOptions, childNodes, childEdges) {
+                                const connectedCount = childNodes.length;
+                                return {
+                                    ...clusterOptions,
+                                    id: clusterId,
+                                    label: `Кластер ${index + 1} (${connectedCount} узлов)`,
+                                    color: {
+                                        background: isDarkMode() ? '#4c1d95' : '#a855f7',
+                                        border: isDarkMode() ? '#6d28d9' : '#7e22ce'
+                                    },
+                                    shape: 'dot',
+                                    size: 20 + Math.min(connectedCount, 20) // Размер зависит от количества узлов
+                                };
+                            },
+                            clusterNodeProperties: {
+                                borderWidth: 3,
+                                shape: 'dot',
+                                font: {size: 14}
+                            }
+                        });
+
+                        // Добавляем ID кластера в список
+                        clusterIDs.push(clusterId);
+                        clusterCount++;
+                    }
+                } catch (e) {
+                    console.error(`Ошибка при создании кластера ${index}:`, e);
+                }
+            });
+
+            if (clusterCount > 0) {
+                isClustered = true;
+                document.getElementById('clusterBtn').innerHTML = '<i class="fas fa-object-ungroup mr-2"></i>Раскластеризовать';
+                showStatus(`Сеть кластеризована (${clusterCount} кластеров)`, "success", 2000);
+            } else {
+                showStatus("Не удалось создать кластеры", "warning", 2000);
+            }
+        } catch (e) {
+            console.error("Общая ошибка кластеризации:", e);
+            showStatus("Ошибка при кластеризации", "error", 2000);
+        }
+    }
+
+    // Добавьте эту функцию для отладки кластеризации
+    function debugNetworkAPI() {
+        if (!network) {
+            console.error("Network не инициализирован");
+            return;
+        }
+
+        // Выводим доступные методы объекта network
+        console.log("Network API:",
+            Object.getOwnPropertyNames(network).filter(prop => typeof network[prop] === 'function')
+        );
+
+        // Проверяем наличие методов кластеризации
+        console.log("Метод cluster доступен:", typeof network.cluster === 'function');
+        console.log("Метод openCluster доступен:", typeof network.openCluster === 'function');
+        console.log("Объект clustering доступен:", network.clustering !== undefined);
+    }
+
+    // Обновите обработчик кнопки кластеризации
+    document.getElementById('clusterBtn').addEventListener('click', function () {
+        debugNetworkAPI(); // Добавьте эту строку для отладки
+        clusterByConnections();
+    });
+
+
+    const originalShakeHandler = shakeBtn.onclick;
+    shakeBtn.onclick = function () {
+        // Если сеть кластеризована, сначала отменяем кластеризацию
+        if (isClustered) {
+            clusterByConnections();
+        }
+        // Затем вызываем оригинальный обработчик
+        originalShakeHandler.call(this);
+    };
+</script>
+</body>
+</html>
