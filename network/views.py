@@ -242,13 +242,14 @@ def process_csv(file):
 def obfuscate_city_name(city_name):
     """Обезличивание названий городов"""
     # Создаем хэш имени, чтобы обеспечить консистентность замены
-    import hashlib
-    hash_obj = hashlib.md5(city_name.encode())
-    hash_hex = hash_obj.hexdigest()
+    return city_name
+    #import hashlib
+    #hash_obj = hashlib.md5(city_name.encode())
+    #hash_hex = hash_obj.hexdigest()
 
     # Используем первые 8 символов хэша как уникальный идентификатор
     # Префикс "City_" делает понятным, что это город
-    return f"City_{hash_hex[:8]}"
+    #return f"City_{hash_hex[:8]}"
 
 
 def generate_mock_data(request):

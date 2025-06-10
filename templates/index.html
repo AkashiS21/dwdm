@@ -34,6 +34,15 @@
             ]
         }
     </script>
+    <script>
+        // Предотвращаем мерцание при загрузке
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
 <div class="container mx-auto p-4">
@@ -48,10 +57,11 @@
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-sun text-yellow-500 dark:text-yellow-300"></i>
-                    <div class="relative inline-block w-12 align-middle select-none">
+                    <label for="themeSwitcher"
+                           class="relative inline-block w-12 align-middle select-none cursor-pointer">
                         <input type="checkbox" id="themeSwitcher" class="sr-only peer"/>
                         <div class="w-12 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-                    </div>
+                    </label>
                     <i class="fas fa-moon text-indigo-700 dark:text-indigo-300"></i>
                 </div>
 
@@ -65,13 +75,63 @@
                         </button>
                     </div>
                     <div id="settingsDropdown"
-                         class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                         class="hidden origin-top-right absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50 max-h-96 overflow-y-auto">
                         <div class="py-1" role="menu" aria-orientation="vertical">
+
+                            <!-- Экспорт данных -->
+                            <div class="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Экспорт данных
+                            </div>
                             <button id="exportBtn"
                                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     role="menuitem">
-                                <i class="fas fa-download mr-2"></i>Экспорт данных
+                                <i class="fas fa-download mr-2"></i>Экспорт CSV
                             </button>
+
+                            <!-- Базовый экспорт изображений -->
+                            <div class="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-t border-gray-200 dark:border-gray-700 mt-1 pt-3">
+                                Базовый экспорт
+                            </div>
+                            <button id="exportPngBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-image mr-2"></i>Сохранить как PNG
+                            </button>
+                            <button id="exportJpgBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-image mr-2"></i>Сохранить как JPG
+                            </button>
+                            <button id="exportHdBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-images mr-2"></i>HD качество (3x)
+                            </button>
+
+                            <!-- Расширенный экспорт -->
+                            <div class="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-t border-gray-200 dark:border-gray-700 mt-1 pt-3">
+                                Расширенный экспорт
+                            </div>
+                            <button id="exportWithWatermarkBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-copyright mr-2"></i>С водяным знаком
+                            </button>
+                            <button id="exportWithInfoBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-info-circle mr-2"></i>С информацией о загрузке
+                            </button>
+                            <button id="exportCustomBtn"
+                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    role="menuitem">
+                                <i class="fas fa-palette mr-2"></i>Настроить экспорт
+                            </button>
+
+                            <!-- Другие опции -->
+                            <div class="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-t border-gray-200 dark:border-gray-700 mt-1 pt-3">
+                                Другие действия
+                            </div>
                             <button id="clearBtn"
                                     class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     role="menuitem">
@@ -83,6 +143,13 @@
                                            class="form-checkbox h-4 w-4 text-primary-600 dark:text-primary-400">
                                     <span>Длина линии = расстояние</span>
                                 </label>
+                            </div>
+
+                            <!-- Горячие клавиши -->
+                            <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-1 pt-3">
+                                <div class="text-xs">Горячие клавиши:</div>
+                                <div class="text-xs mt-1">Ctrl+Shift+E - быстрый экспорт PNG</div>
+                                <div class="text-xs">Ctrl+Shift+S - настройки экспорта</div>
                             </div>
                         </div>
                     </div>
@@ -337,11 +404,11 @@
     // Theme Switcher
     themeSwitcher.addEventListener("change", () => {
         if (themeSwitcher.checked) {
-            document.documentElement.setAttribute("data-theme", "dark");
-            document.body.classList.add("dark");
+            document.documentElement.classList.add("dark");
+            localStorage.setItem("theme", "dark");
         } else {
-            document.documentElement.setAttribute("data-theme", "light");
-            document.body.classList.remove("dark");
+            document.documentElement.classList.remove("dark");
+            localStorage.setItem("theme", "light");
         }
 
         // If network exists, redraw it with new theme
@@ -349,6 +416,76 @@
             updateGraphColors();
         }
     });
+
+    function loadTheme() {
+        const savedTheme = localStorage.getItem("theme");
+
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark");
+            if (themeSwitcher) themeSwitcher.checked = true;
+        } else if (savedTheme === "light") {
+            document.documentElement.classList.remove("dark");
+            if (themeSwitcher) themeSwitcher.checked = false;
+        } else {
+            // Если тема не сохранена, проверяем системные настройки
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add("dark");
+                if (themeSwitcher) themeSwitcher.checked = true;
+                localStorage.setItem("theme", "dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+                if (themeSwitcher) themeSwitcher.checked = false;
+                localStorage.setItem("theme", "light");
+            }
+        }
+    }
+
+    loadTheme();
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const themeSwitcher = document.getElementById("themeSwitcher");
+
+        if (themeSwitcher) {
+            // Устанавливаем правильное состояние переключателя
+            themeSwitcher.checked = document.documentElement.classList.contains("dark");
+
+            // Обработчик изменения темы
+            themeSwitcher.addEventListener("change", () => {
+                if (themeSwitcher.checked) {
+                    document.documentElement.classList.add("dark");
+                    localStorage.setItem("theme", "dark");
+                } else {
+                    document.documentElement.classList.remove("dark");
+                    localStorage.setItem("theme", "light");
+                }
+
+                // Обновляем цвета графа если он существует
+                if (typeof network !== 'undefined' && network) {
+                    updateGraphColors();
+                }
+            });
+        }
+    });
+
+    // Слушаем изменения системной темы
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            // Обновляем только если пользователь не установил тему вручную
+            if (!localStorage.getItem("theme")) {
+                if (e.matches) {
+                    document.documentElement.classList.add("dark");
+                    themeSwitcher.checked = true;
+                } else {
+                    document.documentElement.classList.remove("dark");
+                    themeSwitcher.checked = false;
+                }
+
+                if (network) {
+                    updateGraphColors();
+                }
+            }
+        });
+    }
 
     // File Input Display
     fileInput.addEventListener("change", () => {
@@ -562,8 +699,13 @@
         const edgesWithScaledLength = edges.map(edge => {
             let edgeOptions = {
                 ...edge,
-                color: getEdgeColor(edge),
-                font: {color: isDarkMode() ? '#fff' : '#333'}
+                ...getEdgeColor(edge),
+                font: {
+                    color: isDarkMode() ? '#e5e7eb' : '#374151',
+                    strokeWidth: 3,
+                    strokeColor: isDarkMode() ? '#1f2937' : '#ffffff',
+                    background: isDarkMode() ? '#1f2937' : '#ffffff'
+                }
             };
 
             // Если включена опция расстояния и есть данные о расстоянии
@@ -580,7 +722,11 @@
             nodes: new vis.DataSet(nodes.map(node => ({
                 ...node,
                 color: getNodeColor(node),
-                font: {color: isDarkMode() ? '#fff' : '#333'}
+                font: {
+                    color: isDarkMode() ? '#e5e7eb' : '#374151',
+                    strokeWidth: 3,
+                    strokeColor: isDarkMode() ? '#1f2937' : '#ffffff'
+                }
             }))),
             edges: new vis.DataSet(edgesWithScaledLength)
         };
@@ -931,45 +1077,92 @@
     }
 
     function getEdgeColor(edge) {
-        const load = parseFloat(edge.label);
+        // Извлекаем значение загрузки из различных форматов
+        let ratio = 0;
 
-        if (load > 80) {
-            return isDarkMode() ? "#ef4444" : "#dc2626"; // Red
-        } else if (load > 60) {
-            return isDarkMode() ? "#f59e0b" : "#d97706"; // Yellow/Orange
+        if (edge.usage_ratio !== undefined) {
+            ratio = edge.usage_ratio;
+        } else if (edge.label && edge.label.includes('/')) {
+            const parts = edge.label.split('/');
+            const used = parseFloat(parts[0]);
+            const total = parseFloat(parts[1]);
+            ratio = total > 0 ? used / total : 0;
+        }
+
+        // Определяем цвет на основе загрузки
+        if (ratio > 0.8) {
+            return {
+                color: isDarkMode() ? "#ef4444" : "#dc2626", // Red
+                highlight: isDarkMode() ? "#f87171" : "#ef4444",
+                hover: {
+                    color: isDarkMode() ? "#f87171" : "#ef4444"
+                }
+            };
+        } else if (ratio > 0.6) {
+            return {
+                color: isDarkMode() ? "#f59e0b" : "#d97706", // Yellow/Orange
+                highlight: isDarkMode() ? "#fbbf24" : "#f59e0b",
+                hover: {
+                    color: isDarkMode() ? "#fbbf24" : "#f59e0b"
+                }
+            };
         } else {
-            return isDarkMode() ? "#10b981" : "#059669"; // Green
+            return {
+                color: isDarkMode() ? "#10b981" : "#059669", // Green
+                highlight: isDarkMode() ? "#34d399" : "#10b981",
+                hover: {
+                    color: isDarkMode() ? "#34d399" : "#10b981"
+                }
+            };
         }
     }
 
     function isDarkMode() {
-        return document.body.classList.contains("dark");
+        return document.documentElement.classList.contains("dark");
     }
 
     function updateGraphColors() {
-        if (!network) return;
+        if (!network || !network.body || !network.body.data) return;
 
-        const nodes = network.body.data.nodes;
-        const edges = network.body.data.edges;
+        try {
+            const nodes = network.body.data.nodes;
+            const edges = network.body.data.edges;
 
-        nodes.update(nodes.get().map(node => ({
-            id: node.id,
-            color: getNodeColor(node),
-            font: {color: isDarkMode() ? '#fff' : '#333'}
-        })));
+            // Обновляем цвета узлов
+            const nodeUpdates = nodes.get().map(node => ({
+                id: node.id,
+                color: getNodeColor(node),
+                font: {
+                    color: isDarkMode() ? '#e5e7eb' : '#374151',
+                    strokeWidth: 3,
+                    strokeColor: isDarkMode() ? '#1f2937' : '#ffffff'
+                }
+            }));
+            nodes.update(nodeUpdates);
 
-        edges.update(edges.get().map(edge => ({
-            id: edge.id,
-            color: getEdgeColor(edge),
-            font: {color: isDarkMode() ? '#fff' : '#333'}
-        })));
+            // Обновляем цвета рёбер
+            const edgeUpdates = edges.get().map(edge => ({
+                id: edge.id,
+                ...getEdgeColor(edge),
+                font: {
+                    color: isDarkMode() ? '#e5e7eb' : '#374151',
+                    strokeWidth: 3,
+                    strokeColor: isDarkMode() ? '#1f2937' : '#ffffff',
+                    background: isDarkMode() ? '#1f2937' : '#ffffff'
+                }
+            }));
+            edges.update(edgeUpdates);
+
+            // Обновляем фон canvas
+            if (network.canvas && network.canvas.frame && network.canvas.frame.canvas) {
+                const ctx = network.canvas.frame.canvas.getContext('2d');
+                network.redraw();
+            }
+        } catch (error) {
+            console.error("Ошибка при обновлении цветов графа:", error);
+        }
     }
 
-    // Check system preference for dark mode
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        themeSwitcher.checked = true;
-        document.body.classList.add("dark");
-    }
 
     // Initialize with mock data
     mockBtn.click()
@@ -1256,6 +1449,702 @@
         // Затем вызываем оригинальный обработчик
         originalShakeHandler.call(this);
     };
+
+    function exportNetworkAsImage(format = 'png', quality = 1.0) {
+        if (!network) {
+            showStatus("Нет данных для экспорта", "error");
+            return;
+        }
+
+        try {
+            const canvas = network.canvas.frame.canvas;
+
+            if (!canvas) {
+                showStatus("Не удалось получить canvas", "error");
+                return;
+            }
+
+            network.fit();
+
+            setTimeout(() => {
+                try {
+                    const exportCanvas = document.createElement('canvas');
+                    const ctx = exportCanvas.getContext('2d');
+
+                    exportCanvas.width = canvas.width;
+                    exportCanvas.height = canvas.height;
+
+                    ctx.fillStyle = isDarkMode() ? '#1f2937' : '#ffffff';
+                    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+                    ctx.drawImage(canvas, 0, 0);
+
+                    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                    const dataURL = exportCanvas.toDataURL(mimeType, quality);
+
+                    const link = document.createElement('a');
+                    link.download = `dwdm_network_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${format}`;
+                    link.href = dataURL;
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    showStatus(`Схема экспортирована как ${format.toUpperCase()}`, "success");
+
+                } catch (error) {
+                    console.error('Ошибка при экспорте:', error);
+                    showStatus("Ошибка при экспорте изображения", "error");
+                }
+            }, 500);
+
+        } catch (error) {
+            console.error('Ошибка при получении canvas:', error);
+            showStatus("Ошибка при доступе к canvas", "error");
+        }
+    }
+
+    // Функция экспорта в высоком разрешении
+    function exportNetworkAsHighResImage(scaleFactor = 2) {
+        if (!network) {
+            showStatus("Нет данных для экспорта", "error");
+            return;
+        }
+
+        try {
+            const canvas = network.canvas.frame.canvas;
+
+            if (!canvas) {
+                showStatus("Не удалось получить canvas", "error");
+                return;
+            }
+
+            // Стабилизируем сеть
+            network.fit();
+
+            setTimeout(() => {
+                try {
+                    // Создаем canvas с увеличенным разрешением
+                    const exportCanvas = document.createElement('canvas');
+                    const ctx = exportCanvas.getContext('2d');
+
+                    // Увеличиваем размеры
+                    exportCanvas.width = canvas.width * scaleFactor;
+                    exportCanvas.height = canvas.height * scaleFactor;
+
+                    // Масштабируем контекст
+                    ctx.scale(scaleFactor, scaleFactor);
+
+                    // Заливаем фоном
+                    ctx.fillStyle = isDarkMode() ? '#1f2937' : '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Рисуем оригинальный canvas
+                    ctx.drawImage(canvas, 0, 0);
+
+                    // Экспортируем
+                    const dataURL = exportCanvas.toDataURL('image/png', 1.0);
+                    const link = document.createElement('a');
+                    link.download = `dwdm_network_hd_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                    link.href = dataURL;
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    showStatus(`Схема экспортирована в HD качестве`, "success");
+
+                } catch (error) {
+                    console.error('Ошибка при экспорте HD:', error);
+                    showStatus("Ошибка при экспорте HD изображения", "error");
+                }
+            }, 500);
+
+        } catch (error) {
+            console.error('Ошибка при HD экспорте:', error);
+            showStatus("Ошибка при HD экспорте", "error");
+        }
+    }
+
+    document.getElementById('exportPngBtn')?.addEventListener("click", () => {
+        exportNetworkAsImage('png');
+        settingsDropdown.classList.add("hidden");
+    });
+
+    document.getElementById('exportJpgBtn')?.addEventListener("click", () => {
+        exportNetworkAsImage('jpg', 0.9);
+        settingsDropdown.classList.add("hidden");
+    });
+
+    document.getElementById('exportHdBtn')?.addEventListener("click", () => {
+        exportNetworkAsHighResImage(3);
+        settingsDropdown.classList.add("hidden");
+    });
+
+    document.getElementById('exportWithWatermarkBtn')?.addEventListener("click", () => {
+        exportNetworkWithWatermark('png', 'DWDM Visualizer © 2025');
+        settingsDropdown.classList.add("hidden");
+    });
+
+    document.getElementById('exportWithInfoBtn')?.addEventListener("click", () => {
+        exportNetworkWithLoadInfo();
+        settingsDropdown.classList.add("hidden");
+    });
+
+    document.getElementById('exportCustomBtn')?.addEventListener("click", () => {
+        showAdvancedExportModal();
+        settingsDropdown.classList.add("hidden");
+    });
+
+    function exportNetworkWithWatermark(format = 'png', watermarkText = 'DWDM Visualizer') {
+        if (!network) {
+            showStatus("Нет данных для экспорта", "error");
+            return;
+        }
+
+        try {
+            const canvas = network.canvas.frame.canvas;
+            if (!canvas) {
+                showStatus("Не удалось получить canvas", "error");
+                return;
+            }
+
+            network.fit();
+
+            setTimeout(() => {
+                const exportCanvas = document.createElement('canvas');
+                const ctx = exportCanvas.getContext('2d');
+
+                exportCanvas.width = canvas.width;
+                exportCanvas.height = canvas.height;
+
+                // Фон
+                ctx.fillStyle = isDarkMode() ? '#1f2937' : '#ffffff';
+                ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+                // Копируем граф
+                ctx.drawImage(canvas, 0, 0);
+
+                // Добавляем водяной знак
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(watermarkText, exportCanvas.width - 20, exportCanvas.height - 20);
+
+                // Добавляем дату
+                const date = new Date().toLocaleDateString('ru-RU');
+                ctx.font = '12px Arial';
+                ctx.fillText(date, exportCanvas.width - 20, exportCanvas.height - 40);
+                ctx.restore();
+
+                // Экспорт
+                const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                const dataURL = exportCanvas.toDataURL(mimeType, 0.9);
+
+                const link = document.createElement('a');
+                link.download = `dwdm_network_${date.replace(/\./g, '-')}.${format}`;
+                link.href = dataURL;
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showStatus(`Схема с водяным знаком экспортирована`, "success");
+
+            }, 500);
+
+        } catch (error) {
+            console.error('Ошибка при экспорте с водяным знаком:', error);
+            showStatus("Ошибка при экспорте", "error");
+        }
+    }
+
+    function showAdvancedExportModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="font-bold text-lg text-gray-900 dark:text-white">Настройки экспорта</h3>
+            </div>
+            <div class="p-6 space-y-6">
+
+                <!-- Основные настройки -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200">Основные параметры</h4>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Формат
+                            </label>
+                            <select id="advancedFormatSelect" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                <option value="png">PNG</option>
+                                <option value="jpg">JPG</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Качество (масштаб)
+                            </label>
+                            <select id="advancedQualitySelect" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                <option value="1">1x (стандартное)</option>
+                                <option value="2">2x (высокое)</option>
+                                <option value="3">3x (HD)</option>
+                                <option value="4">4x (Ultra HD)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Настройки фона -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200">Фон изображения</h4>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Цвет фона
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="color" id="backgroundColorPicker" value="#ffffff" class="w-12 h-10 border border-gray-300 dark:border-gray-600 rounded">
+                                <input type="text" id="backgroundColorText" value="#ffffff" class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 mt-6">
+                            <input type="checkbox" id="useCurrentThemeBackground" checked class="form-checkbox h-4 w-4 text-primary-600">
+                            <label for="useCurrentThemeBackground" class="text-sm text-gray-700 dark:text-gray-300">
+                                Использовать цвет текущей темы
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Дополнительные опции -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-800 dark:text-gray-200">Дополнительные опции</h4>
+
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="addWatermark" class="form-checkbox h-4 w-4 text-primary-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Добавить водяной знак</span>
+                        </label>
+
+                        <div id="watermarkOptions" class="ml-6 space-y-2 hidden">
+                            <input type="text" id="watermarkText" placeholder="Текст водяного знака" value="DWDM Visualizer" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        </div>
+
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="addLoadInfo" class="form-checkbox h-4 w-4 text-primary-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Добавить информацию о загрузке</span>
+                        </label>
+
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="fitBeforeAdvancedExport" checked class="form-checkbox h-4 w-4 text-primary-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Подогнать граф перед экспортом</span>
+                        </label>
+
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="addTimestamp" class="form-checkbox h-4 w-4 text-primary-600">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Добавить дату и время</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button id="cancelAdvancedExport" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">
+                    Отмена
+                </button>
+                <button id="confirmAdvancedExport" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md">
+                    Экспортировать
+                </button>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(modal);
+
+        // Синхронизация color picker и text input
+        const colorPicker = document.getElementById('backgroundColorPicker');
+        const colorText = document.getElementById('backgroundColorText');
+        const useCurrentTheme = document.getElementById('useCurrentThemeBackground');
+        const addWatermark = document.getElementById('addWatermark');
+        const watermarkOptions = document.getElementById('watermarkOptions');
+
+        colorPicker.addEventListener('change', () => {
+            colorText.value = colorPicker.value;
+            useCurrentTheme.checked = false;
+        });
+
+        colorText.addEventListener('change', () => {
+            colorPicker.value = colorText.value;
+            useCurrentTheme.checked = false;
+        });
+
+        useCurrentTheme.addEventListener('change', () => {
+            if (useCurrentTheme.checked) {
+                const currentBg = isDarkMode() ? '#1f2937' : '#ffffff';
+                colorPicker.value = currentBg;
+                colorText.value = currentBg;
+            }
+        });
+
+        addWatermark.addEventListener('change', () => {
+            if (addWatermark.checked) {
+                watermarkOptions.classList.remove('hidden');
+            } else {
+                watermarkOptions.classList.add('hidden');
+            }
+        });
+
+        // Обработчики кнопок
+        document.getElementById('cancelAdvancedExport').addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        document.getElementById('confirmAdvancedExport').addEventListener('click', () => {
+            const format = document.getElementById('advancedFormatSelect').value;
+            const quality = parseInt(document.getElementById('advancedQualitySelect').value);
+            const backgroundColor = useCurrentTheme.checked ?
+                (isDarkMode() ? '#1f2937' : '#ffffff') :
+                colorText.value;
+            const fitBefore = document.getElementById('fitBeforeAdvancedExport').checked;
+            const withWatermark = document.getElementById('addWatermark').checked;
+            const withLoadInfo = document.getElementById('addLoadInfo').checked;
+            const watermarkText = document.getElementById('watermarkText').value;
+
+            if (fitBefore && network) {
+                network.fit();
+            }
+
+            // Выбираем подходящую функцию экспорта
+            if (withLoadInfo) {
+                exportNetworkWithLoadInfo();
+            } else if (withWatermark) {
+                exportNetworkWithWatermark(format, watermarkText);
+            } else if (backgroundColor !== (isDarkMode() ? '#1f2937' : '#ffffff')) {
+                exportNetworkWithCustomBackground(backgroundColor, format);
+            } else if (quality > 1) {
+                exportNetworkAsHighResImage(quality);
+            } else {
+                exportNetworkAsImage(format);
+            }
+
+            document.body.removeChild(modal);
+        });
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
+    // Альтернативный способ с модальным окном для выбора параметров экспорта
+    function showExportModal() {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="font-bold text-lg text-gray-900 dark:text-white">Экспорт схемы</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Формат изображения
+                    </label>
+                    <select id="formatSelect" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option value="png">PNG (лучшее качество)</option>
+                        <option value="jpg">JPG (меньший размер)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Качество изображения
+                    </label>
+                    <select id="qualitySelect" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option value="1">Стандартное (1x)</option>
+                        <option value="2">Высокое (2x)</option>
+                        <option value="3">HD (3x)</option>
+                        <option value="4">Ultra HD (4x)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="fitBeforeExport" checked class="form-checkbox h-4 w-4 text-primary-600">
+                    <label for="fitBeforeExport" class="text-sm text-gray-700 dark:text-gray-300">
+                        Подогнать граф перед экспортом
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button id="cancelExport" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">
+                    Отмена
+                </button>
+                <button id="confirmExport" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md">
+                    Экспортировать
+                </button>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(modal);
+
+        // Обработчики для модального окна
+        document.getElementById('cancelExport').addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        document.getElementById('confirmExport').addEventListener('click', () => {
+            const format = document.getElementById('formatSelect').value;
+            const quality = parseInt(document.getElementById('qualitySelect').value);
+            const fitBefore = document.getElementById('fitBeforeExport').checked;
+
+            if (fitBefore && network) {
+                network.fit();
+            }
+
+            if (quality === 1) {
+                exportNetworkAsImage(format, format === 'jpg' ? 0.9 : 1.0);
+            } else {
+                exportNetworkAsHighResImage(quality);
+            }
+
+            document.body.removeChild(modal);
+        });
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
+    // Можете также добавить горячие клавиши для быстрого экспорта
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+Shift+E для экспорта PNG
+        if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+            e.preventDefault();
+            exportNetworkAsImage('png');
+        }
+        // Ctrl+Shift+S для показа модального окна экспорта
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+            e.preventDefault();
+            showExportModal();
+        }
+    });
+
+    // Экспорт выбранной области
+    function exportSelectedNodes(selectedNodes = []) {
+        if (!network || selectedNodes.length === 0) {
+            showStatus("Выберите узлы для экспорта", "error");
+            return;
+        }
+
+        try {
+            // Получаем позиции выбранных узлов
+            const positions = network.getPositions(selectedNodes);
+
+            if (Object.keys(positions).length === 0) {
+                showStatus("Не удалось получить позиции узлов", "error");
+                return;
+            }
+
+            // Вычисляем границы области
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            Object.values(positions).forEach(pos => {
+                minX = Math.min(minX, pos.x);
+                maxX = Math.max(maxX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxY = Math.max(maxY, pos.y);
+            });
+
+            // Добавляем отступы
+            const padding = 100;
+            minX -= padding;
+            maxX += padding;
+            minY -= padding;
+            maxY += padding;
+
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            // Создаем новый canvas для экспорта
+            const exportCanvas = document.createElement('canvas');
+            const ctx = exportCanvas.getContext('2d');
+
+            exportCanvas.width = width;
+            exportCanvas.height = height;
+
+            // Белый фон
+            ctx.fillStyle = isDarkMode() ? '#1f2937' : '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Копируем нужную область из оригинального canvas
+            const originalCanvas = network.canvas.frame.canvas;
+            const networkScale = network.getScale();
+            const networkPosition = network.getViewPosition();
+
+            // Вычисляем смещение для копирования
+            const offsetX = (minX + networkPosition.x) * networkScale;
+            const offsetY = (minY + networkPosition.y) * networkScale;
+
+            ctx.drawImage(
+                originalCanvas,
+                offsetX, offsetY, width * networkScale, height * networkScale,
+                0, 0, width, height
+            );
+
+            // Экспорт
+            const dataURL = exportCanvas.toDataURL('image/png', 1.0);
+            const link = document.createElement('a');
+            link.download = `dwdm_network_selection_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataURL;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showStatus(`Выбранная область экспортирована`, "success");
+
+        } catch (error) {
+            console.error('Ошибка при экспорте выбранной области:', error);
+            showStatus("Ошибка при экспорте выбранной области", "error");
+        }
+    }
+
+    // Экспорт с информацией о загрузке
+    function exportNetworkWithLoadInfo() {
+        if (!network || !graphData.edges || graphData.edges.length === 0) {
+            showStatus("Нет данных для экспорта", "error");
+            return;
+        }
+
+        try {
+            const canvas = network.canvas.frame.canvas;
+            if (!canvas) {
+                showStatus("Не удалось получить canvas", "error");
+                return;
+            }
+
+            network.fit();
+
+            setTimeout(() => {
+                const exportCanvas = document.createElement('canvas');
+                const ctx = exportCanvas.getContext('2d');
+
+                // Увеличиваем размер для размещения информации
+                exportCanvas.width = canvas.width + 300;
+                exportCanvas.height = canvas.height;
+
+                // Фон
+                ctx.fillStyle = isDarkMode() ? '#1f2937' : '#ffffff';
+                ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+                // Копируем граф
+                ctx.drawImage(canvas, 0, 0);
+
+                // Добавляем информационную панель
+                const panelX = canvas.width + 20;
+                const panelY = 20;
+
+                ctx.fillStyle = isDarkMode() ? '#374151' : '#f3f4f6';
+                ctx.fillRect(panelX, panelY, 260, exportCanvas.height - 40);
+
+                // Заголовок панели
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('Информация о загрузке', panelX + 10, panelY + 30);
+
+                // Статистика
+                const totalConnections = graphData.edges.length;
+                const overloaded = graphData.edges.filter(e => {
+                    const load = parseFloat(e.label) || 0;
+                    return load > 80;
+                }).length;
+                const warning = graphData.edges.filter(e => {
+                    const load = parseFloat(e.label) || 0;
+                    return load > 60 && load <= 80;
+                }).length;
+                const normal = totalConnections - overloaded - warning;
+
+                ctx.font = '12px Arial';
+                let yPos = panelY + 60;
+
+                ctx.fillText(`Всего соединений: ${totalConnections}`, panelX + 10, yPos);
+                yPos += 20;
+
+                ctx.fillStyle = '#10b981';
+                ctx.fillText(`Нормальная загрузка: ${normal}`, panelX + 10, yPos);
+                yPos += 20;
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillText(`Высокая загрузка: ${warning}`, panelX + 10, yPos);
+                yPos += 20;
+
+                ctx.fillStyle = '#ef4444';
+                ctx.fillText(`Критическая загрузка: ${overloaded}`, panelX + 10, yPos);
+                yPos += 40;
+
+                // Легенда
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Легенда:', panelX + 10, yPos);
+                yPos += 25;
+
+                // Рисуем цветовые индикаторы
+                ctx.font = '12px Arial';
+
+                // Зеленый
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(panelX + 10, yPos - 10, 15, 10);
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.fillText('< 60% загрузка', panelX + 30, yPos);
+                yPos += 20;
+
+                // Желтый
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(panelX + 10, yPos - 10, 15, 10);
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.fillText('60-80% загрузка', panelX + 30, yPos);
+                yPos += 20;
+
+                // Красный
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(panelX + 10, yPos - 10, 15, 10);
+                ctx.fillStyle = isDarkMode() ? '#ffffff' : '#000000';
+                ctx.fillText('> 80% загрузка', panelX + 30, yPos);
+
+                // Экспорт
+                const dataURL = exportCanvas.toDataURL('image/png', 1.0);
+                const link = document.createElement('a');
+                link.download = `dwdm_network_with_info_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = dataURL;
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showStatus(`Схема с информацией о загрузке экспортирована`, "success");
+
+            }, 500);
+
+        } catch (error) {
+            console.error('Ошибка при экспорте с информацией:', error);
+            showStatus("Ошибка при экспорте", "error");
+        }
+    }
 </script>
 </body>
 </html>
